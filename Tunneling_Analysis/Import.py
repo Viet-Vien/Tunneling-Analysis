@@ -40,6 +40,37 @@ def test_read(path,**kwargs): #read file from path
     file = pd.read_csv(path,**kwargs)
     return file.loc[:,~file.columns.duplicated()]
 
+def subfolders(folder = None):
+    subfolders = list([])
+    if folder == None:
+        folder = choose_folder()
+    else:
+        folder = folder
+    paths = os.listdir(folder)
+    for i in paths:
+        #print(i)
+        if os.path.isdir(os.path.join(folder,i))==True:
+            subfolders.append(folder + '/' + i)
+        else:
+            continue
+    return subfolders
+
+def get_files(folder = None):
+        files = list([])
+        if folder == None:
+            folder = choose_folder()
+        else:
+            folder = folder    
+        paths = os.listdir(folder)
+        for i in paths:
+            #print(i)
+            if os.path.isdir(os.path.join(folder,i))==False:
+                files.append(folder + '/' + i)
+            else:
+                continue
+        return files
+
+        
 def get_badrows(path):                              # .vpdata files have a lot of bad rows that are metadata etc. that need to be removed, this function indentifies the rows by their index
     file = pd.read_fwf(path,header = None)          # rough import
     badindex = np.array([])
@@ -186,21 +217,21 @@ def import_vp_STS_fix(path):
             file.drop(i,axis = 1,inplace = True) 
     return [file,aux[1],aux[2]]             #aux[1] are vector position list rows, aux[2] is metadata
 
-def check_imp_STSnums(imp,singles_points = 2000):
+def check_imp_STSnums(imp,singles_points = 2000):       #gets and checks if number of points of STS import matches expected points
     meta1 = imp[2]
     meta2 = imp[1]
-    tot_points = int(meta1[1][10].strip(' N='))
+    tot_points = int(meta1[1][10].strip(' N=')) # read total number of points
     IVs = int(meta1[1][7].strip(' #IV='))
-    if len(meta2 == 3):
+    if len(meta2 == 3):                     # just for singles measurmements. In this case segment points have to be input manually
         seg_points = singles_points
     else:
-        seg_points= int(meta2["Seg_Points"][3])
-    if IVs*seg_points != tot_points:
+        seg_points= int(meta2["Seg_Points"][3])     #get points a frame should contain
+    if IVs*seg_points != tot_points:                #check
         return False
     else:
         return True
     
-def check_STSorder(imp):
+def check_STSorder(imp):                            #for STS measurments with multiple frames, checks if a frame was skipped or replaced with nonsense frame
     check_arr = np.array([])
     ind_arr = np.array([])
     for i in range(len(imp[1]["Seg"])):
@@ -214,7 +245,7 @@ def check_STSorder(imp):
     return [check_arr,ind_arr]
         
     
-def order_check(entry,next_entry):
+def order_check(entry,next_entry):      #help function for check_STSorder, performs the order check on a segment
     order = ["S[1]","S[4]","S[7]"]
     if entry == order[0] and next_entry == order[1]:
         return True
@@ -233,7 +264,7 @@ def check_time(imp):                         #fixing time reset ebug in raw data
     diff = diff[diff<0]
     return diff
 
-def check_xyz(imp):
+def check_xyz(imp):                 #checks if controller messed up X,Y or Z piezo voltages during measurement
     x_start = imp[1]['"XS"Å'][0]
     y_start = imp[1]['"YS"Å'][0]
     z_start = imp[1]['"ZS"Å'][0]
@@ -248,7 +279,7 @@ def check_xyz(imp):
     else:
         return False
 
-def STSfile_check(imp):
+def STSfile_check(imp,V = 0.51):
     check_res = list([]) 
     
     point_check = check_imp_STSnums(imp)
@@ -263,7 +294,7 @@ def STSfile_check(imp):
     xyz_check = check_xyz(imp)
     check_res.append([xyz_check])
     
-    u_check = U_check(imp,0.5)
+    u_check = U_check(imp,V)
     check_res.append([u_check])
     
     check_res.append([str(imp[2][1][3])])
@@ -271,8 +302,11 @@ def STSfile_check(imp):
     return check_res
 
 
-def STSfile_allcheck():
-    folder = choose_folder()
+def STSfile_allcheck(folder = None):
+    if folder == None:  
+        folder = choose_folder()
+    else:
+        folder = folder
     paths = os.listdir(folder)
     point_errs = 0
     point_arr = list([])
@@ -301,7 +335,7 @@ def STSfile_allcheck():
             if check_arr[3][0]==True:
                 xyz_errs +=1
                 xyz_arr.append(i)
-            if len(check_arr[4]['Umon (V)']) != 0:
+            if len(check_arr[4][0]['Umon (V)']) != 0:
                    U_err +=1
                    U_arr.append(i)
     print('Point Errors: ',point_errs)
@@ -311,13 +345,13 @@ def STSfile_allcheck():
     print('Time Errors: ',time_errs)
     print(time_arr)
     print('XYZ Errors: ',xyz_errs)
-    print(xyz_arr)
+    #print(xyz_arr)
     print('U Errors: ',U_err)
     print(U_arr)
 
     return err_arr
 
-def U_check(imp,V):
+def U_check(imp,V):                                     # Checks if controller messed up bias Voltage (whether voltage higher than input was applied)
     err_arr = imp[0][abs(imp[0]['Umon (V)']) > V]
     return err_arr
 

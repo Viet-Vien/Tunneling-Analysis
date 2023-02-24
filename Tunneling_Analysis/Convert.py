@@ -19,7 +19,7 @@ import matplotlib.pyplot as plt
 import math
 from tkinter import Tk, filedialog
 from pandas.core.base import PandasObject
-from Import import import_vp, vp_to_csv, choose_folder, import_vp_TS, import_vp_STS_fix
+from Import import import_vp, vp_to_csv, choose_folder, import_vp_TS, import_vp_STS_fix, subfolders, get_files
 # import xarray as xr
 
 dir_path = os.path.dirname(os.path.realpath(__file__)) # working folder path (folder that this file sits in)
@@ -42,7 +42,7 @@ def data_array(paths):
         frames_list.append(test_read(i))
     return frames_list
 
-def vp_to_csv_index(file,path,newpath):
+def vp_to_csv_index(file,newpath):
     file.to_csv(newpath, sep=',',header = True, index = True)
     
     
@@ -363,6 +363,78 @@ def vp_convert_all_STS_fix(): #not much faster if at all haha
             vp_to_csv_index(file[0],vp_file_path,vp_file_path_new)
             file[1].to_frame().to_csv(vp_file_path_err, sep=',')
 
+
+###############################################################################
+                    ## STS with single spectra ##
+###############################################################################
+def STS_combine_all(folder = None,subfldrs = False,length = 4): 
+    if folder == None:
+        folder = choose_folder()
+    else:
+        folder = folder
+    if subfldrs == True:
+        paths = make_folder_paths(folder)
+    else: 
+        paths = get_files(folder)
+    out = STS_combine(paths,length)
+    return out
+
+def make_folder_paths(folder = None):
+    if folder == None:
+        folder = choose_folder()
+    else:
+        folder = folder
+    paths = list([])
+    for i in subfolders(folder):
+        #print(i)
+        subfolder = i
+        paths += get_files(subfolder)
+    #paths = np.array(paths)
+    #paths = np.squeeze(paths,axis = 0)
+    return paths
+    
+    
+def STS_combine(paths,length = 4):
+    out = pd.DataFrame()
+    frame_num = len(paths)
+    frame_names = STS_sframes(frame_num,length)
+    for i in range(len(paths)):
+        print(i)
+        imp = import_vp_STS_fix(paths[i])
+        data = imp[0]
+        STS_set_frame_idx(data, frame_names[i])
+        out = pd.concat([out,data])
+    return out
+
+def STS_sframes(num,length):
+    names = list([])
+    for i in range(1,num+1,1):                 #loop adds leading 0s
+        string = str(i)
+        while (len(string) < length):
+                string = '0'+string
+        names.append(string)
+    return names
+
+def STS_set_frame_idx(file,name):
+    old_idx = file.index.to_frame()             #convert indices of file to a dataframe for better handling
+    num_points = len(old_idx)
+    frame_names = np.full(num_points,name)
+    old_idx.insert(0,"Frames",frame_names)
+    file.index = pd.MultiIndex.from_frame(old_idx)
+
+def convert_sSTSset(folder = None,name = None):
+    if folder == None:
+        folder = choose_folder()
+    else:
+        folder = folder
+    if name == None:
+        name = os.listdir(folder)[0].strip('.vpdata')
+    else:
+        name = name
+    newpath = os.path.join(os.path.dirname(folder),name) + '.txt'
+    file = STS_combine_all(folder)
+    vp_to_csv_index(file,newpath = newpath)
+    
 
 # def fix_TS(file):
 #     for i in file.index.unique:

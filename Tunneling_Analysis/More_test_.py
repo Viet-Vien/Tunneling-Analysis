@@ -4,10 +4,14 @@ Created on Tue Jan 24 09:21:42 2023
 
 @author: Norman
 """
+#D:\Work\GitHub\Tunneling-Analysis\Tunneling_Analysis
+#jupyter notebook --notebook-dir=D:\Work\GitHub\Tunneling-Analysis\Tunneling_Analysis\
+
 from Import import *
 #from Import import import_vp_STS_fix
-
 from Convert import *
+from STS_Analysis import *
+
 
 from tkinter import Tk, filedialog
 import os
@@ -15,6 +19,9 @@ import pandas as pd
 import re
 import copy
 import numpy as np
+import matplotlib.colors as colors
+import matplotlib.pyplot as plt
+pd.options.mode.chained_assignment = None
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
 
@@ -232,6 +239,427 @@ def U_allcheck(V,folder = None):
                    U_arr.append(i)
     print('U Errors: ',U_err)
     print(U_arr)
+
+def STS_initial_val(data):
+    idx = pd.IndexSlice
+    return data.loc[idx[:,0:0],:]
+
+def bin_it(co,diff,x):
+    return None
+
+# def STS_2D_bin(Vs,Is,data):
+#     Vs_diff = np.divide(np.diff(Vs),2)
+#     Is_diff = np.divide(np.diff(Is),2)
+#     Vs_co = np.add(Vs[:-1],Vs_diff)
+#     Is_co = np.add(Is[:-1],Is_diff)
+#     data = data.loc[:,["ADC0-I (nA)","Umon (V)"]]
+#     print(data)
+#     IV_map = np.empty((len(Is_co),len(Vs_co)))
+#     for j in range(len(Is_co)):
+#         binned = copy.deepcopy(data[(Is_co[j] - Is_diff[j])<= data["ADC0-I (nA)"]])
+#         binned = binned[binned["ADC0-I (nA)"]  < (Is_co[j] + Is_diff[j])]
+#         row = np.empty(len(Vs_co))
+#         for i in range(len(Vs_co)):
+#             binbin = copy.deepcopy(binned[(Vs_co[i] - Vs_diff[i])<= binned["Umon (V)"] ])
+#             binbin = binbin[binbin["Umon (V)"] < (Vs_co[i] + Vs_diff[i])]
+#             #IV_map[j][i] = len(binned["ADC0-I (nA)"])
+#             row[i] = len(binbin["ADC0-I (nA)"])
+#             print(i,j)
+#         IV_map[j] = row
+#     return IV_map
+#     # bin_ij = data.loc[]
+
+#(Vs_co[i] - Vs_diff[i]<= data["Umon (V)"] < Vs_co[i] - Vs_diff[i]) 
+def get_centers(xs,ys):
+    x_diff = np.diff(xs)
+    y_diff = np.diff(ys)
+    xs = np.add(xs[:-1],np.divide(x_diff,2))
+    ys = np.add(ys[:-1],np.divide(y_diff,2))
+    return list([xs,ys])
+
+def convert_bin_sSTSset(file,binx,biny):
+    Vs = np.linspace(-binx[0],binx[0],binx[1])
+    Is = np.linspace(-biny[0],biny[0],biny[1])
+    x_co,y_co = get_centers(Vs, Is)
+    binned = STS_2D_bin(Vs,Is,file)
+    
+    return pd.DataFrame(binned,index = y_co,columns = x_co)
+
+# def readin_STS(path = None):
+#     if path == None:
+#         path = choose_files()[0]
+#     else:
+#         path = path
+#     file = pd.read_csv(path,header = 0,dtype = {"Frames":str}, index_col = [0,1])
+#     return file   
+
+
+def bin_all_sSTSset(binx,biny,folder = None,):
+    if folder == None:
+        folder = choose_folder()
+    else:
+        folder = folder
+    files = os.listdir(folder)
+    for i in files:
+        print(i)
+        if 'import' in i:
+            path = os.path.join(folder,i)
+            newpath = path.replace('import','bin')
+            file = readin_STS(path)
+            binned = convert_bin_sSTSset(file,binx,biny)
+            vp_to_csv_index(binned,newpath = newpath)
+
+# def STS_2D_bin(Vs,Is,data):
+#     Vs_diff = np.divide(np.diff(Vs),2)
+#     Is_diff = np.divide(np.diff(Is),2)
+#     Vs_co = np.add(Vs[:-1],Vs_diff)
+#     Is_co = np.add(Is[:-1],Is_diff)
+#     data = data.loc[:,["ADC0-I (nA)","Umon (V)"]]
+#     print(data)
+#     IV_map = np.empty((len(Is_co),len(Vs_co)))
+#     for j in range(len(Is_co)):
+#         binned = copy.deepcopy(data[(Is_co[j] - Is_diff[j])<= data["ADC0-I (nA)"]])
+#         binned = binned[binned["ADC0-I (nA)"]  < (Is_co[j] + Is_diff[j])]
+#         row = np.empty(len(Vs_co))
+#         for i in range(len(Vs_co)):
+#             binbin = copy.deepcopy(binned[(Vs_co[i] - Vs_diff[i])<= binned["Umon (V)"] ])
+#             binbin = binbin[binbin["Umon (V)"] < (Vs_co[i] + Vs_diff[i])]
+#             #IV_map[j][i] = len(binned["ADC0-I (nA)"])
+#             row[i] = len(binbin["ADC0-I (nA)"])
+#             print(i,j)
+#         IV_map[j] = row
+#     return IV_map
+
+
+
+#%%
+test_file = readin_STS()
+bin_map = STS_2D_bin(test_file,points = [100,100])
+plot_IVmap(bin_map)
+
+#%%
+test_file = readin_STS()
+bin_map = STS_2D_bin(test_file,points = [100,100],params=['Time (ms)','ADC0-I (nA)'])
+plot_IVmap(bin_map)
+
+#%%
+test_file = readin_STS()
+bin_map = STS_frame_bin(test_file,points = [100,100])
+plot_IVmap(bin_map)
+#%%
+idx = pd.IndexSlice
+params=['Time (ms)','ADC0-I (nA)']
+
+bla = test_file.loc[idx[1:1],:][params[0]].max()
+
+#%%
+idx = pd.IndexSlice
+ind = file.loc[idx[40:100,10:100],:]
+
+frames = file.index.get_level_values('Frames').unique()
+frames = frames[frames < 6]
+#%%
+idx = pd.IndexSlice
+ind = file.loc[idx[40:100,10:100],:]
+
+frames = file.index.get_level_values('Frames').unique()
+frame_num = len(frames)
+data_num = len(file.loc[idx[1:1],:]['Umon (V)'])
+Is = copy.deepcopy(file['ADC0-I (nA)']).to_numpy()
+Is = np.reshape(Is, (frame_num,data_num)).transpose()
+Zs = copy.deepcopy(file['Zmon (Å)']).to_numpy()
+Zs = np.reshape(Zs, (frame_num,data_num)).transpose()
+print(file.columns)
+print(Is)
+param  = 'ADC0-I (nA)'
+#Fs,Ts = np.meshgrid(file.loc[idx[1:1],:]['Umon (V)'],file.loc[idx[1:1],:]['Time (ms)'])
+Fs,Ts = np.meshgrid(frames,file.loc[idx[1:1],:]['Time (ms)'])
+Fs,Vs = np.meshgrid(frames,file.loc[idx[1:1],:]['Umon (V)'])
+
+ax = plt.figure().add_subplot(1,1,1,projection='3d')
+ax.plot_wireframe(Fs, Vs, Is, rstride=0, cstride=1,lw=0.1)
+plt.show()
+
+ax = plt.figure().add_subplot(1,1,1,projection='3d')
+ax.plot_wireframe(Fs, Ts, Is, rstride=0, cstride=1,lw=0.1)
+plt.show()
+
+ax = plt.figure().add_subplot(1,1,1,projection='3d')
+ax.plot_wireframe(Fs, Ts, Zs, rstride=10, cstride=0,lw=0.1)
+plt.show()
+#%%
+#IV_map = read_in_IVmap()
+
+plot_IVmap(IV_normalized, logmod = 1,nozeros = 'False')
+#plt.ylim(-3,3)
+#%%
+#xrange = IV_map.index.astype('float').max()
+#yrange = IV_map.columns.astype('float').max()
+
+#plot_IVmap_3D(IV_normalized,xlim = [-0.2,0.2],ylim = [-0.5,0.5],nozeros = True)
+plot_IVmap_wireframe(IV_normalized,lw = 0.4,xlim = [-0.1,0.1],ylim = [-0.5,0.5],rstride = 0)
+#%%
+from mpl_toolkits.mplot3d import axes3d
+from IPython import get_ipython
+
+#get_ipython().run_line_magic('matplotlib', 'inline')
+get_ipython().run_line_magic('matplotlib', 'qt')
+
+
+
+X, Y, Z = axes3d.get_test_data(0.05)
+ax = plt.figure().add_subplot(1,1,1,projection='3d')
+
+Vs = np.linspace(-0.5, 0.5,100)
+Is = np.linspace(-10,10,1000)
+x_co,y_co = get_centers(Vs, Is)
+X2, Y2 = np.meshgrid(x_co,y_co)
+
+Z2 = IV_normalized.to_numpy()
+
+#ax.plot_surface(X2, Y2, Z2, edgecolor='None', lw=1, rstride=1, cstride=1,
+                #alpha=1,cmap='inferno',antialiased=True)
+Y2[Y2>3] = np.nan
+Y2[Y2<-3] = np.nan
+Z2[Z2 == 0] = np.nan
+#ax.plot_wireframe(X2, Y2, Z2, rstride=0, cstride=1,lw=0.3)
+ax.plot_surface(X2, Y2,Z2, edgecolor='None', lw=1, rstride=1, cstride=1,
+                alpha=1,cmap='inferno',antialiased=True)
+
+#ax.contour(X2, Y2, Z2, zdir='z', offset=-1, cmap=plt.cm.coolwarm)
+#cset = ax.contour(X2, Y2, Z2, zdir='x', offset=-1, cmap=plt.cm.coolwarm)
+#cset = ax.contour(X2, Y2, Z2, zdir='y', offset=5, cmap=plt.cm.coolwarm)
+#ax.imshow(IV_normalized,cmap = 'inferno', extent = [-0.5,0.5,-3,3],aspect = 'auto')
+
+ax.set(xlim=(-0.5, 0.5), ylim=(-3, 3),
+       xlabel='X', ylabel='Y', zlabel='Z')
+
+# ax.set_xlim3d(-1, 2*1);
+# ax.set_ylim3d(0, 3*1);
+# ax.set_zlim3d(-1, 2*1);
+
+
+#%%
+IV_map2 = IV_map.iloc[::-1]
+IV_sums = IV_map.iloc[:][:].sum()
+IV_normalized= IV_map[:][:]/IV_sums[:]
+
+print( IV_normalized.min().min())
+print( IV_normalized.max().max())
+#%%
+plot_IVmap(IV_normalized)
+colums = IV_normalized.columns
+col_ = colums[0]
+col16 = IV_normalized.iloc[:][colums[16]]
+plt.plot(col16.index.astype('float'),col16)
+#%%
+binx = [0.5,100]
+biny = [10,1000]
+bin_all_sSTSset(binx,biny)
+
+#%%
+path = choose_files()[0]
+file2 = pd.read_csv(path,header = 0,dtype = {"Frames":str}, index_col = [0,1])
+file = pd.read_csv(path,header = 0, index_col = [0,1])
+#%%
+
+folder = choose_folder()
+subs = subfolders(folder)
+
+for i in range(len(subs)):
+    name = 'STS_1Vps_import_' + str(i)
+    convert_sSTSset(folder = subs[i],name = name)
+    
+    
+    
+#%%
+paths = make_folder_paths()
+print(paths)
+
+#%%
+
+Stest_3 = STS_combine_all(subfldrs=True)
+
+#%%
+newpath = 'D:/Work/Stress Test/Advanced_Test/Singles_Test_3'
+newpath = newpath + '/'+'STS_100Vs_import_all.txt'
+vp_to_csv_index(Stest_3,newpath = newpath)
+
+#%%
+Vs = np.linspace(-0.5, 0.5,100)
+Is = np.linspace(-10,10,1000)
+x_co,y_co = get_centers(Vs, Is)
+bin_test4 = STS_2D_bin(Vs, Is, Stest_3)
+bin_df4 = pd.DataFrame(bin_test4,index = y_co,columns = x_co)
+newpath = 'D:/Work/Stress Test/Advanced_Test/Singles_Test_3'
+newpath = newpath + '/'+'STS_100Vs_bin_all.txt'
+vp_to_csv_index(bin_df4,newpath = newpath)
+
+
+#%%
+
+df_4 = STS_combine_all()
+
+Vs = np.linspace(-0.5, 0.5,100)
+Is = np.linspace(-10,10,1000)
+grid = np.meshgrid(Vs,Is)
+
+x_co,y_co = get_centers(Vs, Is)
+
+newpath = 'D:/Work/Stress Test/Advanced_Test/Singles_Test_3'
+print(newpath)
+newpath = newpath + '/'+'STS_100Vs_import_9.txt'
+
+vp_to_csv_index(df_4,newpath = newpath)
+
+bin_test4 = STS_2D_bin(Vs, Is, df_4)
+
+bin_df4 = pd.DataFrame(bin_test4,index = y_co,columns = x_co)
+#newpath = choose_folder()
+newpath = 'D:/Work/Stress Test/Advanced_Test/Singles_Test_3'
+newpath = newpath + '/'+'STS_100Vs_bin_9.txt'
+
+vp_to_csv_index(bin_df4,newpath = newpath)
+#%%
+flip = np.flipud(bin_test4)
+
+
+im = plt.imshow(np.flipud(np.add(bin_test4,2)), cmap=plt.cm.inferno,
+                interpolation=None,extent=[-0.5,0.5,-10,10],aspect = 0.05, norm = colors.LogNorm(vmin=1, vmax=bin_test4.max()))
+
+plt.colorbar(im)
+plt.title('All')
+#plt.ylim((-3,3))
+#plt.yscale('log')
+plt.show()
+
+#%%
+hist = np.sum(flip,axis = 1)
+
+plt.plot(y_co,hist)
+plt.show()
+
+
+flip1 = np.flipud(np.multiply(bin_test4,y_co[:,np.newaxis]))
+
+histx = np.sum(flip,axis = 0)
+
+plt.plot(x_co,histx)
+plt.show()
+#%%
+df_2 = STS_combine_all()
+
+#%%
+#newpath = choose_folder()
+newpath = 'D:/Work/Stress Test/Advanced_Test/Singles_Test_3'
+print(newpath)
+newpath = newpath + '/'+'STS_100Vs_import_1.txt'
+
+vp_to_csv_index(df_2,newpath = newpath)
+
+#%%
+
+Vs = np.linspace(-0.5, 0.5,100)
+Is = np.linspace(-10,10,1000)
+grid = np.meshgrid(Vs,Is)
+
+#V_diff = np.diff(Vs)
+#I_diff = np.diff(Is)
+
+x_co,y_co = get_centers(Vs, Is)
+
+bin_test1 = STS_2D_bin(Vs, Is, df_2)
+
+#%%
+
+bin_df1 = pd.DataFrame(bin_test3,index = y_co,columns = x_co)
+#newpath = choose_folder()
+newpath = 'D:/Work/Stress Test/Advanced_Test/Singles_Test_3'
+newpath = newpath + '/'+'STS_100Vs_bin_1.txt'
+
+vp_to_csv_index(bin_df1,newpath = newpath)
+
+#%%
+Vs = np.linspace(-0.5, 0.5,100)
+Is = np.linspace(-10,10,1000)
+grid = np.meshgrid(Vs,Is)
+
+#V_diff = np.diff(Vs)
+#I_diff = np.diff(Is)
+
+x_co,y_co = get_centers(Vs, Is)
+
+bin_test2 = STS_2D_bin(Vs, Is, df)
+
+#%%
+
+flip = np.flipud(bin_test2)
+
+im = plt.imshow(np.flipud(np.add(bin_test3,2)), cmap=plt.cm.inferno,
+                interpolation=None,extent=[-0.5,0.5,-10,10],aspect = 0.05, norm = colors.LogNorm(vmin=1, vmax=bin_test2.max()))
+
+plt.colorbar(im)
+plt.title('Letsee2')
+plt.show()
+#%%
+
+bin_df = pd.DataFrame(bin_test3,index = y_co,columns = x_co)
+#newpath = choose_folder()
+newpath = 'D:/Work/Stress Test/Advanced_Test/Singles_Test_3'
+newpath = newpath + '/'+'STS_100Vs_bin_1.txt'
+
+vp_to_csv_index(bin_df,newpath = newpath)
+
+#%%
+flip = np.flipud(bin_test2)
+
+im = plt.imshow(np.flipud(np.add(bin_test2,2)), cmap=plt.cm.inferno,
+                interpolation=None,extent=[-0.5,0.5,-10,10],aspect = 0.05, norm = colors.LogNorm(vmin=1, vmax=bin_test2.max()))
+
+plt.colorbar(im)
+plt.title('Letsee')
+plt.show()
+#%%
+#paths = choose_files()
+paths = ('D:/Work/Stress Test/Advanced_Test/Singles_Test_3/STS_Singles_0_dsp-IV-Slope-  100 Vps    _dsp-IV-rep-  1      _dsp-fbs-bias- 0p2 V    _dsp-fbs-mx0-current-set-   1 nA    _/STS_dsp-IV-Slope-  100 Vps    _000.vpdata', 'D:/Work/Stress Test/Advanced_Test/Singles_Test_3/STS_Singles_0_dsp-IV-Slope-  100 Vps    _dsp-IV-rep-  1      _dsp-fbs-bias- 0p2 V    _dsp-fbs-mx0-current-set-   1 nA    _/STS_dsp-IV-Slope-  100 Vps    _001.vpdata', 'D:/Work/Stress Test/Advanced_Test/Singles_Test_3/STS_Singles_0_dsp-IV-Slope-  100 Vps    _dsp-IV-rep-  1      _dsp-fbs-bias- 0p2 V    _dsp-fbs-mx0-current-set-   1 nA    _/STS_dsp-IV-Slope-  100 Vps    _002.vpdata', 'D:/Work/Stress Test/Advanced_Test/Singles_Test_3/STS_Singles_0_dsp-IV-Slope-  100 Vps    _dsp-IV-rep-  1      _dsp-fbs-bias- 0p2 V    _dsp-fbs-mx0-current-set-   1 nA    _/STS_dsp-IV-Slope-  100 Vps    _003.vpdata', 'D:/Work/Stress Test/Advanced_Test/Singles_Test_3/STS_Singles_0_dsp-IV-Slope-  100 Vps    _dsp-IV-rep-  1      _dsp-fbs-bias- 0p2 V    _dsp-fbs-mx0-current-set-   1 nA    _/STS_dsp-IV-Slope-  100 Vps    _004.vpdata')
+print(paths)
+df = STS_combine_all()
+#names = STS_sframes(len(paths),3)
+
+#%%
+newpath = choose_folder()
+print(newpath)
+newpath = newpath + '/'+'STS_100Vs_import_0.txt'
+
+vp_to_csv_index(df,newpath = newpath)
+#%%
+fig, axes = plt.subplots(nrows=3, ncols=1)
+
+df.plot.scatter(x = "Time (ms)", y = "ADC0-I (nA)", ax=axes[0],sharex=True,c="DarkBlue",s=0.1)
+df.plot.scatter(x = "Time (ms)", y = "Zmon (Å)", ax=axes[1],sharex=True,c="DarkBlue",s=0.1)
+df.plot.scatter(x = "Time (ms)", y = "Umon (V)", ax=axes[2],sharex=True,c="DarkBlue",s=0.1)  
+df.plot.scatter(x = "Umon (V)", y = "ADC0-I (nA)",c="DarkBlue",s=0.1)
+
+#%%
+
+df_no = df[abs(df["ADC0-I (nA)"])<10]
+fig, axes = plt.subplots(nrows=3, ncols=1)
+
+
+df_no.plot.scatter(x = "Time (ms)", y = "ADC0-I (nA)", ax=axes[0],sharex=True,c="DarkBlue",s=0.1)
+df_no.plot.scatter(x = "Time (ms)", y = "Zmon (Å)", ax=axes[1],sharex=True,c="DarkBlue",s=0.1)
+df_no.plot.scatter(x = "Time (ms)", y = "Umon (V)", ax=axes[2],sharex=True,c="DarkBlue",s=0.1)  
+df_no.plot.scatter(x = "Umon (V)", y = "ADC0-I (nA)",c="DarkBlue",s=0.1)
+
+
+
+#%%
+init = STS_initial_val(df)
+init_nooverload = init[abs(init["ADC0-I (nA)"])<10]
+
+xs = np.linspace(1, len(init_nooverload.index),num = len(init_nooverload.index))
+plt.plot(xs,init_nooverload["ADC0-I (nA)"]*1000)
+plt.plot(xs,init_nooverload["Zmon (Å)"])
 #%%
 
 #Singles Test 1
@@ -244,8 +672,20 @@ U_allcheck(0.51)
 # 60 V/s [0,0,0,417] : [point,order,time,xyz] , no Zmon, no U
 # 50 V/s [0,0,0,537] : [point,order,time,xyz] , no Zmon, no U
 
+#%%
+pd.options.mode.chained_assignment = None
+#errs = STSfile_allcheck()
+# path = choose_files()[0]
+# imp = import_vp_STS_fix(path)
+# err = STSfile_check(imp)
 
-
+folders = subfolders()
+for i in folders:
+    print(i)
+    #STSfile_allcheck(i)
+    Zmon_allcheck(i)
+#all look good in allcheck
+# all look good in Zmon check
 #%%
 path = choose_files()[0]
 imp = import_vp_STS_fix(path)
@@ -285,8 +725,11 @@ Zmon_check_err(folder,err_paths_3)
 print(folder)
 
 
+
+
 #%% 
 Zmon_allcheck()
+
 
 #%%
 folder = 'D:/Work/Stress Test/Test2 - Switch Ramp/'
@@ -331,6 +774,12 @@ imp2_fix.plot.scatter(x = "Time (ms)", y = "ADC0-I (nA)", ax=axes[0],sharex=True
 imp2_fix.plot.scatter(x = "Time (ms)", y = "Zmon (Å)", ax=axes[1],sharex=True,c="DarkBlue",s=0.1)
 imp2_fix.plot.scatter(x = "Time (ms)", y = "Umon (V)", ax=axes[2],sharex=True,c="DarkBlue",s=0.1)  
 imp2_fix.plot.scatter(x = "Umon (V)", y = "ADC0-I (nA)",c="DarkBlue",s=0.1)
+
+
+
+
+
+
 
 
 #%%

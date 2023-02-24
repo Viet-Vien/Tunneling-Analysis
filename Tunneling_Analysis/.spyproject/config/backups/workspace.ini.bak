@@ -4,7 +4,7 @@ save_data_on_exit = True
 save_history = True
 save_non_project_files = False
 project_type = empty-project-type
-recent_files = ['C:\\Users\\Norman\\.spyder-py3\\temp.py', '..\\..\\Raman Measurements\\Raman_Spectrum_Fitting.py', 'Import.py', 'More_test_.py', 'Convert.py', 'C:\\Users\\Norman\\Anaconda3\\lib\\site-packages\\pandas\\core\\indexes\\base.py', 'C:\\Users\\Norman\\Anaconda3\\lib\\site-packages\\numpy\\__init__.py', 'ReadIn.py', 'C:\\Users\\Norman\\workers.py']
+recent_files = ['C:\\Users\\Norman\\.spyder-py3\\temp.py', 'Import.py', 'More_test_.py', 'Convert.py', 'STS_Analysis.py', 'C:\\Users\\Norman\\Anaconda3\\lib\\site-packages\\pandas\\core\\indexes\\base.py', 'C:\\Users\\Norman\\Anaconda3\\lib\\site-packages\\numpy\\__init__.py', 'ReadIn.py', 'C:\\Users\\Norman\\workers.py']
 
 [main]
 version = 0.2.0
