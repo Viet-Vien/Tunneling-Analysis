@@ -150,7 +150,7 @@ def STS_frame_bin(file,points = [None,100],param = 'Zmon (Å)', xrange = [None,N
     Ys_cor = np.add(Ys_co,Ys_diff)
     
     data = copy.deepcopy(file.loc[:,[param]])
-    bin_map = np.empty((len(Ys_co),len(Xs_co)))
+    bin_map = np.empty((len(Xs_co),len(Ys_co)))
     for j in range(len(Xs_co)):
         binbin = copy.deepcopy(data)
         frame = frames[frames >= Xs_col[j]]
@@ -177,18 +177,42 @@ def get_centers(xs,ys):
     return list([xs,ys])
 
 # returns binned data as pandas dataframe ()
-def convert_bin_sSTSset(file,binx,biny):
-    Vs = np.linspace(-binx[0],binx[0],binx[1])
-    Is = np.linspace(-biny[0],biny[0],biny[1])
-    x_co,y_co = get_centers(Vs, Is)
-    binned = STS_2D_bin(Vs,Is,file)
+# def convert_bin_sSTSset(file,binx,biny):    ### OBSOLETE
+#     Vs = np.linspace(-binx[0],binx[0],binx[1])
+#     Is = np.linspace(-biny[0],biny[0],biny[1])
+#     x_co,y_co = get_centers(Vs, Is)
+#     binned = STS_2D_bin(Vs,Is,file)
     
-    return pd.DataFrame(binned,index = y_co,columns = x_co)
+#     return pd.DataFrame(binned,index = y_co,columns = x_co)
+
+def convert_bin_sSTSset(file,params = ["Umon (V)","ADC0-I (nA)"],**kwargs):
+    if params[0] == 'Frames':
+        binned = STS_frame_bin(file,param = params[1],**kwargs)
+    else:
+        binned = STS_2D_bin(file,params = params,**kwargs)
+    return binned
 
 
 # finds all STS imports in folder and bins them into IV-map according to bin array x and y,
 # saves data as .txt
-def bin_all_sSTSset(binx,biny,folder = None):
+# def bin_all_sSTSset(binx,biny,folder = None): ###OBSOLETE
+#     if folder == None:
+#         folder = choose_folder()
+#     else:
+#         folder = folder
+#     files = os.listdir(folder)
+#     for i in files:
+#         print(i)
+#         if 'import' in i:
+#             path = os.path.join(folder,i)
+#             newpath = path.replace('import','bin')
+#             file = readin_STS(path)
+#             binned = convert_bin_sSTSset(file,binx,biny)
+#             vp_to_csv_index(binned,newpath = newpath)
+
+def bin_all_sSTSset(folder = None, params = ["Umon (V)","ADC0-I (nA)"],**kwargs):
+    Types = {'ADC0-I (nA)':'I','Zmon (Å)':'Z', 'Umon (V)':'Vm', 'Time (ms)':'T','Bias (V)':'V','LockIn A-1st (dV)':'dIdV','LockIn B-1st (dV)':'dIdV_B','LockIn A-2nd (ddV)':'dIddV','LockIn B-2nd (ddV)':'dIddV_B','LockIn0 (V)':'Lock_0','Frames':'F'}
+    name = Types[params[1]] + Types[params[0]] + 'bin'
     if folder == None:
         folder = choose_folder()
     else:
@@ -198,11 +222,13 @@ def bin_all_sSTSset(binx,biny,folder = None):
         print(i)
         if 'import' in i:
             path = os.path.join(folder,i)
-            newpath = path.replace('import','bin')
+            newpath = path.replace('import',name)
             file = readin_STS(path)
-            binned = convert_bin_sSTSset(file,binx,biny)
+            binned = convert_bin_sSTSset(file,params,**kwargs)
             vp_to_csv_index(binned,newpath = newpath)
-
+    
+    
+    
 def IVmap_normalize(IV_map):
     IV_sums = IV_map.iloc[:][:].sum()
     IV_normalized= IV_map[:][:]/IV_sums[:]

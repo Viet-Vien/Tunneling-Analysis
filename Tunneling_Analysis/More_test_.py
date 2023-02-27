@@ -331,7 +331,8 @@ def bin_all_sSTSset(binx,biny,folder = None,):
 #     return IV_map
 
 
-
+#%%
+print(file.columns)
 #%%
 test_file = readin_STS()
 bin_map = STS_2D_bin(test_file,points = [100,100])
@@ -344,8 +345,9 @@ plot_IVmap(bin_map)
 
 #%%
 test_file = readin_STS()
-bin_map = STS_frame_bin(test_file,points = [100,100])
-plot_IVmap(bin_map)
+bin_map = STS_frame_bin(test_file,points = [None,100])
+#%%
+plot_IVmap(bin_map,log = False)
 #%%
 idx = pd.IndexSlice
 params=['Time (ms)','ADC0-I (nA)']

@@ -40,7 +40,7 @@ def test_read(path,**kwargs): #read file from path
     file = pd.read_csv(path,**kwargs)
     return file.loc[:,~file.columns.duplicated()]
 
-def subfolders(folder = None):
+def subfolders(folder = None,condition = None):
     subfolders = list([])
     if folder == None:
         folder = choose_folder()
@@ -50,7 +50,13 @@ def subfolders(folder = None):
     for i in paths:
         #print(i)
         if os.path.isdir(os.path.join(folder,i))==True:
-            subfolders.append(folder + '/' + i)
+            if condition != None:
+                if condition in i:
+                    subfolders.append(folder + '/' + i)
+                else:
+                    continue
+            if condition == None:
+                subfolders.append(folder + '/' + i)
         else:
             continue
     return subfolders
