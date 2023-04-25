@@ -399,7 +399,7 @@ def STS_combine(paths,length = 4):
     frame_num = len(paths)
     frame_names = STS_sframes(frame_num,length)
     for i in range(len(paths)):
-        print(i)
+        #print(i)
         imp = import_vp_STS_fix(paths[i])
         data = imp[0]
         STS_set_frame_idx(data, frame_names[i])

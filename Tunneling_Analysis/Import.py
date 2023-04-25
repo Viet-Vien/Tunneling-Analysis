@@ -28,14 +28,6 @@ file_name = "\\STS_1Vs_000-VP327-VP.vpdata"
 path = dir_path + folder_name + file_name
 segment_number = 3   
 
-def choose_files():                                    # function to open file selection dialogue box
-    root = Tk()                                         # starts tkinter
-    root.withdraw()                                     # hides tkinter initial dialogue box
-    root.attributes('-topmost', True)                   # pushes newly opened window to always be on front
-    file_paths = filedialog.askopenfilenames(initialdir = dir_path)              # opens file selection dialogue (from work directory)
-    return file_paths 
-# path = choose_files()[0]
-
 def test_read(path,**kwargs): #read file from path
     file = pd.read_csv(path,**kwargs)
     return file.loc[:,~file.columns.duplicated()]
@@ -111,18 +103,24 @@ def vp_convert_all(folder,newfolder):
         file = import_vp(vp_file_paths[i])
         vp_to_csv(file,vp_file_paths[i],vp_file_paths_new[i])
 
-def choose_folder():                                    # function to open folder selection dialogue box
+def choose_folder(initialdir = None):                                    # function to open folder selection dialogue box
+    if initialdir == None:    
+        initialdir = os.path.dirname(os.path.realpath(__file__))
     root = Tk()                                         # starts tkinter
     root.withdraw()                                     # hides tkinter initial dialogue box
     root.attributes('-topmost', True)                   # pushes newly opened window to always be on front
-    open_file = filedialog.askdirectory(initialdir = dir_path)              # opens folder selection dialogue (from work directory)
+    open_file = filedialog.askdirectory(initialdir = initialdir)              # opens folder selection dialogue (from work directory)
     return open_file
 
-def choose_files():                                    # function to open file selection dialogue box
+def choose_files(initialdir = None):                                    # function to open file selection dialogue box
+    if initialdir == None:    
+        initialdir = os.path.dirname(os.path.realpath(__file__))
+    
+
     root = Tk()                                         # starts tkinter
     root.withdraw()                                     # hides tkinter initial dialogue box
     root.attributes('-topmost', True)                   # pushes newly opened window to always be on front
-    file_paths = filedialog.askopenfilenames(initialdir = dir_path)              # opens file selection dialogue (from work directory)
+    file_paths = filedialog.askopenfilenames(initialdir = initialdir)              # opens file selection dialogue (from work directory)
     return file_paths                                   # returns tuple of file paths
 
 def vp_convert_all_choose():                            # converts all .vpdata files in chosen folder to proper format

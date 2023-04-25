@@ -53,6 +53,65 @@ def STS_get_val(data,index):
     idx = pd.IndexSlice
     return data.loc[idx[:,index:index],:]
 
+# Plotting IV_sets
+
+def STS_plot(imp,**kwargs):
+    plt.plot(imp['Bias (V)'],imp["ADC0-I (nA)"], **kwargs)
+    
+# Averaging and Fitting STS sets
+
+def STS_average(imp):
+    idx = pd.IndexSlice
+    frame_number = imp.index.get_level_values(0)[-1]
+    frame_len = len(imp.loc[idx[1:1,:],'ADC0-I (nA)'])
+    biases = imp.loc[idx[1:1,:],'Bias (V)']
+
+    trial = np.array([])
+    for i in range(frame_number):
+        trial = np.append(trial,imp.loc[idx[i+1:i+1,0:],'ADC0-I (nA)'].to_numpy())
+    
+    trial = trial.reshape(frame_number,frame_len)
+    df = pd.DataFrame(trial)
+    med = df.median()
+    dev = df.std()
+    avg = [med,dev,biases]
+    return avg
+
+def STS_logavg(imp):
+    idx = pd.IndexSlice
+    frame_number = imp.index.get_level_values(0)[-1]
+    frame_len = len(imp.loc[idx[1:1,:],'ADC0-I (nA)'])
+    biases = imp.loc[idx[1:1,:],'Bias (V)']
+
+    trial = np.array([])
+    for i in range(frame_number):
+        trial = np.append(trial,imp.loc[idx[i+1:i+1,0:],'ADC0-I (nA)'].to_numpy())
+    
+    trial = trial.reshape(frame_number,frame_len)
+    df = pd.DataFrame(trial)
+    med = df.median()
+    dev = df.std()
+    avg = [med,dev,biases]
+    return avg
+
+
+def STS_splitavg(avg,startpoints = 333, midpoints = 1000):
+    med = avg[0]
+    dev = avg[1]
+    biases = avg[2]
+    back = med[startpoints-1:startpoints-1 + midpoints]
+    backdev = dev[startpoints-1:startpoints-1 + midpoints]  
+    backbiases = biases[startpoints-1:startpoints-1 + midpoints]
+    forth = med[startpoints-1 + midpoints:startpoints-1 + 2* midpoints]  
+    forthdev = dev[startpoints-1:startpoints-1 + midpoints]
+    forthbiases= biases[startpoints-1 + midpoints:startpoints-1 + 2* midpoints]  
+    return [[back,backdev,backbiases],[forth,forthdev,forthbiases]]
+
+
+#def STS_framearrange(imp,colum = "ADC0-I (nA)"):
+    #frames = imp['Frames'][:]
+
+
 
 # bins data according to binning arrays defined by I's and V's (only current and voltage)
 
@@ -117,7 +176,7 @@ def STS_2D_bin(file,points = [100,1000],params = ["Umon (V)","ADC0-I (nA)"], xra
             binbin = copy.deepcopy(binned[Xs_col[i]<= binned[params[0]] ])
             binbin = binbin[binbin[params[0]] < Xs_cor[i]]
             row[i] = len(binbin[params[1]])
-            print(i,j)
+            #print(i,j)
         bin_map[j] = row
     return pd.DataFrame(bin_map,index = Ys_co,columns = Xs_co)
 
@@ -163,7 +222,7 @@ def STS_frame_bin(file,points = [None,100],param = 'Zmon (Å)', xrange = [None,N
             binned = copy.deepcopy(binbin[(Ys_col[i])<= data[param]])
             binned = binned[binned[param]  < (Ys_cor[i])]
             row[i] = len(binned[param])
-            print(i,j)
+            #print(i,j)
         bin_map[j] = row
     return pd.DataFrame(bin_map,index = Xs_co,columns = Ys_co).transpose()
 
@@ -210,7 +269,7 @@ def convert_bin_sSTSset(file,params = ["Umon (V)","ADC0-I (nA)"],**kwargs):
 #             binned = convert_bin_sSTSset(file,binx,biny)
 #             vp_to_csv_index(binned,newpath = newpath)
 
-def bin_all_sSTSset(folder = None, params = ["Umon (V)","ADC0-I (nA)"],**kwargs):
+def bin_all_sSTSset(folder = None, params = ["Umon (V)","ADC0-I (nA)"],equal_range = False, **kwargs):
     Types = {'ADC0-I (nA)':'I','Zmon (Å)':'Z', 'Umon (V)':'Vm', 'Time (ms)':'T','Bias (V)':'V','LockIn A-1st (dV)':'dIdV','LockIn B-1st (dV)':'dIdV_B','LockIn A-2nd (ddV)':'dIddV','LockIn B-2nd (ddV)':'dIddV_B','LockIn0 (V)':'Lock_0','Frames':'F'}
     name = Types[params[1]] + Types[params[0]] + 'bin'
     if folder == None:
@@ -218,17 +277,37 @@ def bin_all_sSTSset(folder = None, params = ["Umon (V)","ADC0-I (nA)"],**kwargs)
     else:
         folder = folder
     files = os.listdir(folder)
-    for i in files:
-        print(i)
-        if 'import' in i:
-            path = os.path.join(folder,i)
-            newpath = path.replace('import',name)
-            file = readin_STS(path)
-            binned = convert_bin_sSTSset(file,params,**kwargs)
-            vp_to_csv_index(binned,newpath = newpath)
-    
-    
-    
+    if equal_range == False:
+        for i in files:
+            print(i)
+            if 'import' in i:
+                        path = os.path.join(folder,i)
+                        newpath = path.replace('import',name)
+                        file = readin_STS(path)
+                        binned = convert_bin_sSTSset(file,params,**kwargs)
+                        vp_to_csv_index(binned,newpath = newpath)
+    else:
+        imports = list([])
+        maxs = list([])
+        mins = list([])
+        newpaths = list([])
+        for i in files:         
+           if 'import' in i:
+                    print(i)
+                    path = os.path.join(folder,i)
+                    newpaths.append(path.replace('import',name))
+                    file = readin_STS(path)
+                    imports.append(file)
+                    maxs.append(file[params[1]].max())
+                    mins.append(file[params[1]].min())
+           else:
+               continue
+        yrange = [min(mins),max(maxs)]         
+        for j in range(len(imports)):
+                   print(j)
+                   binned = convert_bin_sSTSset(imports[j],params,yrange = yrange,**kwargs)
+                   vp_to_csv_index(binned,newpath = newpaths[j])
+           
 def IVmap_normalize(IV_map):
     IV_sums = IV_map.iloc[:][:].sum()
     IV_normalized= IV_map[:][:]/IV_sums[:]
@@ -257,8 +336,11 @@ def plot_IVmap(IV_map, xrange = 'auto' , yrange = 'auto', aspect = None, log = T
         plt.imshow(IV_map,cmap=plt.cm.inferno, extent=[xrange[0],xrange[1],yrange[0],yrange[1]],aspect = aspect)
 
     
-def plot_IVmaps(**kwargs):
-    paths = choose_files()
+def plot_IVmaps(paths = None,**kwargs):
+    if paths == None:
+        paths = choose_files()
+    else:
+        paths = paths
     for i in paths:
         IV_map = read_in_IVmap(i)
         im  = plot_IVmap(IV_map,**kwargs)

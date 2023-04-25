@@ -6,6 +6,8 @@ Created on Tue Jan 24 09:21:42 2023
 """
 #D:\Work\GitHub\Tunneling-Analysis\Tunneling_Analysis
 #jupyter notebook --notebook-dir=D:\Work\GitHub\Tunneling-Analysis\Tunneling_Analysis\
+#jupyter notebook --notebook-dir=D:\Work\2023_03_23 EQT42vs43\Spot6\ 
+#IZ : 
 
 from Import import *
 #from Import import import_vp_STS_fix
@@ -783,7 +785,9 @@ imp2_fix.plot.scatter(x = "Umon (V)", y = "ADC0-I (nA)",c="DarkBlue",s=0.1)
 
 
 
+#%%
 
+space = np.linspace(0.01,0.5, 50)
 #%%
 x_start = check_xyz(imp1)
 
