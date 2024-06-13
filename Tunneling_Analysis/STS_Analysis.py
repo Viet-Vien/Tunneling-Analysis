@@ -55,57 +55,102 @@ def STS_get_val(data,index):
 
 # Plotting IV_sets
 
-def STS_plot(imp,**kwargs):
-    plt.plot(imp['Bias (V)'],imp["ADC0-I (nA)"], **kwargs)
+def STS_plot(imp,*args,**kwargs):         
+    plt.plot(imp['Bias (V)'],imp["ADC0-I (nA)"],*args, **kwargs)
     
 # Averaging and Fitting STS sets
 
-def STS_average(imp):
+def STS_average(imp,droplevel = True):
     idx = pd.IndexSlice
     frame_number = imp.index.get_level_values(0)[-1]
+    
+    indx = imp.index
+    indx = indx.to_frame()
+    indx = indx.astype(int)
+    imp.index = pd.MultiIndex.from_frame(indx)   
+    
     frame_len = len(imp.loc[idx[1:1,:],'ADC0-I (nA)'])
     biases = imp.loc[idx[1:1,:],'Bias (V)']
 
     trial = np.array([])
+    
     for i in range(frame_number):
-        trial = np.append(trial,imp.loc[idx[i+1:i+1,0:],'ADC0-I (nA)'].to_numpy())
+        addition = imp.loc[idx[i+1:i+1,0:],'ADC0-I (nA)'].to_numpy()
+        if len(addition) != frame_len:
+            frame_number = frame_number -1
+            continue
+        trial = np.append(trial,addition)
     
     trial = trial.reshape(frame_number,frame_len)
     df = pd.DataFrame(trial)
     med = df.median()
     dev = df.std()
+    if droplevel == True:
+        biases = biases.droplevel(0)
     avg = [med,dev,biases]
     return avg
 
-def STS_logavg(imp):
+def STS_logavg(imp,droplevel = True,logout = False):        #(not finished, get the average of the logarithm(exp(data+1)))
     idx = pd.IndexSlice
     frame_number = imp.index.get_level_values(0)[-1]
     frame_len = len(imp.loc[idx[1:1,:],'ADC0-I (nA)'])
     biases = imp.loc[idx[1:1,:],'Bias (V)']
+    
 
     trial = np.array([])
+    signs = np.array([])
     for i in range(frame_number):
-        trial = np.append(trial,imp.loc[idx[i+1:i+1,0:],'ADC0-I (nA)'].to_numpy())
-    
+        add = np.log(np.abs(imp.loc[idx[i+1:i+1,0:],'ADC0-I (nA)'].to_numpy()) + 1)
+        trial = np.append(trial,add)
+        frame_signs = np.sign(imp.loc[idx[i+1:i+1,0:],'ADC0-I (nA)'])
+        signs = np.append(signs,frame_signs)
     trial = trial.reshape(frame_number,frame_len)
+    signs = signs.reshape(frame_number,frame_len)
+    
     df = pd.DataFrame(trial)
+    sign_df = pd.DataFrame(signs)
+    
+    signmed = sign_df.median()
+    
+    if droplevel == True:
+        biases = biases.droplevel(0)
     med = df.median()
     dev = df.std()
-    avg = [med,dev,biases]
+    medpdev = med + dev
+    medmdev = med - dev
+    
+    
+    avg = [med,dev,biases,medpdev,medmdev]
     return avg
 
+def STS_split(imp,startpoints,midpoints):
+    idx = pd.IndexSlice
+    back = imp.loc[idx[:,startpoints-1:startpoints-1 + midpoints],:]
+    forth = imp.loc[idx[:,startpoints + midpoints:startpoints + 2* midpoints],:]  
+    return [back,forth]
 
-def STS_splitavg(avg,startpoints = 333, midpoints = 1000):
+def STS_splitavg(avg,startpoints = 333, midpoints = 1000): #still needs testing
     med = avg[0]
     dev = avg[1]
     biases = avg[2]
     back = med[startpoints-1:startpoints-1 + midpoints]
     backdev = dev[startpoints-1:startpoints-1 + midpoints]  
     backbiases = biases[startpoints-1:startpoints-1 + midpoints]
-    forth = med[startpoints-1 + midpoints:startpoints-1 + 2* midpoints]  
-    forthdev = dev[startpoints-1:startpoints-1 + midpoints]
-    forthbiases= biases[startpoints-1 + midpoints:startpoints-1 + 2* midpoints]  
+    forth = med[startpoints + midpoints:startpoints + 2* midpoints]  
+    forthdev = dev[startpoints:startpoints + midpoints]
+    forthbiases= biases[startpoints + midpoints:startpoints + 2* midpoints]  
     return [[back,backdev,backbiases],[forth,forthdev,forthbiases]]
+
+
+
+###############################################################################
+###############################################################################
+            #Functions specifically for Liquid STS
+###############################################################################
+###############################################################################
+
+
+
 
 
 #def STS_framearrange(imp,colum = "ADC0-I (nA)"):

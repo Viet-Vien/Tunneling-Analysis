@@ -22,11 +22,11 @@ from tkinter import Tk, filedialog
 import re
 import copy
 
-dir_path = os.path.dirname(os.path.realpath(__file__)) # working folder path (folder that this file sits in)
-folder_name = "\\EQT008 vs EQT010\\Spot2\\1nA"   
-file_name = "\\STS_1Vs_000-VP327-VP.vpdata"                     
-path = dir_path + folder_name + file_name
-segment_number = 3   
+#dir_path = os.path.dirname(os.path.realpath(__file__)) # working folder path (folder that this file sits in)
+#folder_name = "\\EQT008 vs EQT010\\Spot2\\1nA"   
+#file_name = "\\STS_1Vs_000-VP327-VP.vpdata"                     
+#path = dir_path + folder_name + file_name
+#segment_number = 3   
 
 def test_read(path,**kwargs): #read file from path
     file = pd.read_csv(path,**kwargs)
@@ -53,21 +53,31 @@ def subfolders(folder = None,condition = None):
             continue
     return subfolders
 
-def get_files(folder = None):
-        files = list([])
-        if folder == None:
-            folder = choose_folder()
-        else:
-            folder = folder    
-        paths = os.listdir(folder)
-        for i in paths:
-            #print(i)
-            if os.path.isdir(os.path.join(folder,i))==False:
-                files.append(folder + '/' + i)
-            else:
-                continue
-        return files
+#Obsolete
+# def get_files(folder = None): 
+#         files = list([])
+#         if folder == None:
+#             folder = choose_folder()
+#         else:
+#             folder = folder    
+#         paths = os.listdir(folder)
+#         for i in paths:
+#             #print(i)
+#             if os.path.isdir(os.path.join(folder,i))==False:
+#                 files.append(folder + '/' + i)
+#             else:
+#                 continue
+#         return files
 
+def get_files(folder = None, condition = None):
+    if folder == None:
+        folder = choose_folder()
+    paths = os.listdir(folder)
+    onlyfiles = [os.path.join(folder, f) for f in paths if 
+    os.path.isfile(os.path.join(folder, f))]
+    if condition != None:
+        onlyfiles = [i for i in onlyfiles if condition in i]
+    return onlyfiles
         
 def get_badrows(path):                              # .vpdata files have a lot of bad rows that are metadata etc. that need to be removed, this function indentifies the rows by their index
     file = pd.read_fwf(path,header = None)          # rough import
@@ -103,16 +113,18 @@ def vp_convert_all(folder,newfolder):
         file = import_vp(vp_file_paths[i])
         vp_to_csv(file,vp_file_paths[i],vp_file_paths_new[i])
 
-def choose_folder(initialdir = None):                                    # function to open folder selection dialogue box
+def choose_folder(initialdir = None,printing = False):                                    # function to open folder selection dialogue box
     if initialdir == None:    
         initialdir = os.path.dirname(os.path.realpath(__file__))
     root = Tk()                                         # starts tkinter
     root.withdraw()                                     # hides tkinter initial dialogue box
     root.attributes('-topmost', True)                   # pushes newly opened window to always be on front
     open_file = filedialog.askdirectory(initialdir = initialdir)              # opens folder selection dialogue (from work directory)
+    if printing == True:
+        print(open_file)
     return open_file
 
-def choose_files(initialdir = None):                                    # function to open file selection dialogue box
+def choose_files(initialdir = None, printing = False):                                    # function to open file selection dialogue box
     if initialdir == None:    
         initialdir = os.path.dirname(os.path.realpath(__file__))
     
@@ -121,6 +133,8 @@ def choose_files(initialdir = None):                                    # functi
     root.withdraw()                                     # hides tkinter initial dialogue box
     root.attributes('-topmost', True)                   # pushes newly opened window to always be on front
     file_paths = filedialog.askopenfilenames(initialdir = initialdir)              # opens file selection dialogue (from work directory)
+    if printing == True:
+        print(file_paths)
     return file_paths                                   # returns tuple of file paths
 
 def vp_convert_all_choose():                            # converts all .vpdata files in chosen folder to proper format

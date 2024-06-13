@@ -10,6 +10,7 @@ Created on Wed Oct 12 11:25:46 2022
 
 @author: Norman
 """
+import re
 import numpy as np
 import os
 from os import listdir
@@ -376,8 +377,8 @@ def STS_combine_all(folder = None,subfldrs = False,length = 4):
         paths = make_folder_paths(folder)
     else: 
         paths = get_files(folder)
-    out = STS_combine(paths,length)
-    return out
+    out,meta1,meta2 = STS_combine(paths,length)
+    return [out,meta1,meta2]
 
 def make_folder_paths(folder = None):
     if folder == None:
@@ -402,9 +403,11 @@ def STS_combine(paths,length = 4):
         #print(i)
         imp = import_vp_STS_fix(paths[i])
         data = imp[0]
+        if i == 0:
+            meta1,meta2 = imp[1],imp[2]
         STS_set_frame_idx(data, frame_names[i])
         out = pd.concat([out,data])
-    return out
+    return [out,meta1,meta2]
 
 def STS_sframes(num,length):
     names = list([])
@@ -422,7 +425,7 @@ def STS_set_frame_idx(file,name):
     old_idx.insert(0,"Frames",frame_names)
     file.index = pd.MultiIndex.from_frame(old_idx)
 
-def convert_sSTSset(folder = None,name = None):
+def convert_sSTSset(folder = None,name = None,add = None,**kwargs):
     if folder == None:
         folder = choose_folder()
     else:
@@ -431,10 +434,140 @@ def convert_sSTSset(folder = None,name = None):
         name = os.listdir(folder)[0].strip('.vpdata')
     else:
         name = name
+    if add != None:
+        name = name + '_'+ add
     newpath = os.path.join(os.path.dirname(folder),name) + '.txt'
-    file = STS_combine_all(folder)
+    file = STS_combine_all(folder,**kwargs)[0]
     vp_to_csv_index(file,newpath = newpath)
     
+def make_STS_paths(folder, conditions = []):
+    
+    paths = [f for f in os.listdir(folder) if os.path.isdir(os.path.join(folder,f)) == True]
+    if conditions != []:
+        for condition in conditions:
+            paths = [f for f in paths if condition in f]
+    paths = [os.path.join(folder,f) for f in paths]
+    return paths
+        
+def get_current_name(path):
+    current = re.split('_dsp-fbs-mx0-current-set-',path)[1]
+    current = re.split(' nA    _',current)[0]
+    current += ' nA'
+    return current
+    
+def get_bias_name(path):
+    bias = re.split('_dsp-fbs-bias-',path)[1]
+    bias = re.split(' V    _',bias)[0]
+    bias += ' V'
+    return bias
+
+def get_conditions_name(paths,sort = True,biasdescend = True, currentdescend = True):
+    currents = list([])
+    biases = list([])
+    for i in paths:
+        currents.append(get_current_name(i))
+        biases.append(get_bias_name(i))
+    currents = np.unique(np.array(currents))
+    biases = np.unique(np.array(biases))
+    
+    if sort == True:
+        currentsfloat = np.array([float(re.split(' nA',f.replace('p','.'))[0]) for f in currents])
+        biasesfloat = np.array([float(re.split(' V',f.replace('p','.'))[0]) for f in biases])
+        
+        cursort = np.argsort(currentsfloat)
+        biassort = np.argsort(biasesfloat)
+        
+        currents = currents[cursort]
+        biases = biases[biassort]
+        
+        if currentdescend == True:
+            currents= currents[::-1]
+        if biasdescend == True:
+            biases = biases[::-1]
+        
+    return [currents,biases]
+
+def make_dataframe(setpoints,biases):
+    columns = setpoints
+    rows = biases
+    df = pd.DataFrame(index= rows,columns =columns)
+    return df
+
+def save_file(files,filename, folder = None, initialdir = None):
+    if folder == None:
+        folder = choose_folder(initialdir = initialdir)
+    savepath = os.path.join(folder,filename)
+    if isinstance(files,list) == True:
+        files = pd.DataFrame(files).transpose()
+    files.to_pickle(savepath)
+
+
+# #%%
+# pd.options.mode.chained_assignment = None
+
+# folder = 'D:/Work/EQT50vs51/Spot1/STS3'
+# paths = make_STS_paths(folder,conditions = ['STS'])
+# setpoints, biases = get_conditions_name(paths)
+
+# df = make_dataframe(setpoints,biases)
+
+# for i in setpoints:
+#     print(i)
+#     for j in biases:
+#         paths = make_STS_paths(folder,conditions = ['STS',i,j])
+#         file_paths = list([])
+#         for f in paths:
+#             files = os.listdir(f)
+#             add = [os.path.join(f,fi) for fi in files]
+#             file_paths.append(add)
+#         file_paths = [path for paths in file_paths for path in paths]
+#         if file_paths ==[]:
+#             continue
+#         df.loc[j,i] = STS_combine(file_paths)
+
+# #%%
+
+# folder = 'D:/Work/EQT50vs51/Spot1/STS3'
+# paths = make_STS_paths(folder,conditions = ['STS'])
+# setpoints, biases = get_conditions_name(paths)
+
+# for bias in biases:
+#     df = make_dataframe(setpoints,[bias])
+#     print(df)
+#     for setpoint in setpoints:
+#         paths = make_STS_paths(folder,conditions = ['STS',setpoint,bias])
+#         print(paths)
+#         file_paths = list([])
+#         for f in paths:
+#             files = os.listdir(f)
+#             add = [os.path.join(f,fi) for fi in files]
+#             file_paths.append(add)
+#         file_paths = [path for paths in file_paths for path in paths]
+#         if file_paths ==[]:
+#             continue
+#         print(file_paths)
+#         print(setpoint)
+#         df.loc[bias,setpoint] = STS_combine(file_paths)
+#     save_file(df,folder = 'D:/Work/EQT50vs51/Spot1', filename = 'STS3_import' + bias + 'set')
+# #%%
+# save_file(df,folder = 'D:/Work/EQT50vs51/Spot1', filename = 'STS3_full_import')
+
+
+
+# #%%
+
+# test = df.loc[biases[0],setpoints[0]][0]
+
+# print('stupid')
+
+# #%%
+    
+#def STSimp_paramset(folder):
+    
+    
+    
+    
+
 
 # def fix_TS(file):
 #     for i in file.index.unique:

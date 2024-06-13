@@ -27,6 +27,11 @@ pd.options.mode.chained_assignment = None
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
 
+
+
+path = choose_files()[0]
+file = STS_import_help(path)
+print(file)
 # def choose_files():                                    # function to open file selection dialogue box
 #     root = Tk()                                         # starts tkinter
 #     root.withdraw()                                     # hides tkinter initial dialogue box
@@ -210,15 +215,15 @@ def Zmon_allcheck(folder = None):
     print(zmon_arr)
     
 
-def STS_plot(folder,paths):
-    for i in paths:
-        imp = import_vp_STS_fix(folder + '/' + i)
-        fix_time(imp[0])
-        fig, axes = plt.subplots(nrows=3, ncols=1)
-        imp[0].plot.scatter(x = "Time (ms)", y = "ADC0-I (nA)", ax=axes[0],sharex=True,c="DarkBlue",s=0.1)
-        imp[0].plot.scatter(x = "Time (ms)", y = "Zmon (Å)", ax=axes[1],sharex=True,c="DarkBlue",s=0.1)
-        imp[0].plot.scatter(x = "Time (ms)", y = "Umon (V)", ax=axes[2],sharex=True,c="DarkBlue",s=0.1)  
-        imp[0].plot.scatter(x = "Umon (V)", y = "ADC0-I (nA)",c="DarkBlue",s=0.1)
+# def STS_plot(folder,paths):
+#     for i in paths:
+#         imp = import_vp_STS_fix(folder + '/' + i)
+#         fix_time(imp[0])
+#         fig, axes = plt.subplots(nrows=3, ncols=1)
+#         imp[0].plot.scatter(x = "Time (ms)", y = "ADC0-I (nA)", ax=axes[0],sharex=True,c="DarkBlue",s=0.1)
+#         imp[0].plot.scatter(x = "Time (ms)", y = "Zmon (Å)", ax=axes[1],sharex=True,c="DarkBlue",s=0.1)
+#         imp[0].plot.scatter(x = "Time (ms)", y = "Umon (V)", ax=axes[2],sharex=True,c="DarkBlue",s=0.1)  
+#         imp[0].plot.scatter(x = "Umon (V)", y = "ADC0-I (nA)",c="DarkBlue",s=0.1)
 
 
 def U_check(imp,V):
@@ -334,6 +339,70 @@ def bin_all_sSTSset(binx,biny,folder = None,):
 
 
 #%%
+#path = choose_files()[0]
+imp = readin_STS(path)
+STS_plot(imp)
+plt.show()
+
+#%%
+
+
+
+back,forth = STS_split(imp,333,1000)
+STS_plot(back,'bo',markersize = 0.1)
+STS_plot(forth,'bo',markersize = 0.1)
+
+#%%
+
+
+
+
+#%%
+
+#bg_path = choose_files()[0]
+bg = readin_STS(bg_path)
+# STS_plot(bg)
+# plt.show()
+
+bg_back,bg_forth = STS_split(bg,333,1000)
+STS_plot(bg_back,'bo',markersize = 0.1)
+STS_plot(bg_forth,'bo',markersize = 0.1)
+
+bg_avgb = STS_average(bg_back)
+plt.plot(bg_avgb[2],bg_avgb[0],'r--')
+bg_avgf = STS_average(bg_forth)
+plt.plot(bg_avgf[2],bg_avgf[0],'r--')
+
+#%%
+
+back['ADC0-I (nA)'] ,forth['ADC0-I (nA)']  = back['ADC0-I (nA)']- bg_avgb[0],forth['ADC0-I (nA)']-bg_avgf[0]
+
+#%%
+
+STS_plot(back,'bo',markersize = 0.1)
+STS_plot(forth,'bo',markersize = 0.1)
+
+#%%
+
+imp_max = imp['ADC0-I (nA)'].max()
+imp_min = imp['ADC0-I (nA)'].min()
+
+min_biases = imp['Bias (V)'][imp['ADC0-I (nA)'] == imp_min]
+min_bias = min_biases.max()
+max_biases = imp['Bias (V)'][imp['ADC0-I (nA)'] == imp_max]
+max_bias = max_biases.min()
+
+crop = imp[imp['Bias (V)']<max_bias]
+crop = crop[imp['Bias (V)']>min_bias]
+#%%
+STS_plot(crop,'bo',markersize = 0.1)
+plt.show()
+#%%
+avg = STS_average(crop)
+plt.plot(avg[2],avg[0])
+
+#%%
+
 print(file.columns)
 #%%
 test_file = readin_STS()
